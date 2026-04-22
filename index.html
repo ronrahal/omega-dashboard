@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OMEGA — Jupiter Predict Intelligence</title>
+<meta name="description" content="13-signal math engine + Whale Radar for Jupiter Predict markets.">
+<meta name="theme-color" content="#00ffb3">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/base.css">
+<link rel="stylesheet" href="css/layout.css">
+<link rel="stylesheet" href="css/dashboard.css">
+<link rel="stylesheet" href="css/radar.css">
+<link rel="stylesheet" href="css/tracker.css">
+<link rel="stylesheet" href="css/modal.css">
+</head>
+<body>
+
+<!-- ── HEADER ── -->
+<header>
+  <div class="h-logo">
+    <div class="h-logo-mark">Ω</div>
+    <div>
+      <div class="h-logo-text">OMEGA</div>
+      <div class="h-logo-sub">Jupiter Predict · 13-Signal + Whale Radar</div>
+    </div>
+  </div>
+  <div class="h-stats">
+    <div class="hstat"><div class="hstat-l">Markets</div><div class="hstat-v" id="hs-live" style="color:var(--b)">—</div></div>
+    <div class="hstat"><div class="hstat-l">Bullish</div><div class="hstat-v" id="hs-bull" style="color:var(--g)">—</div></div>
+    <div class="hstat"><div class="hstat-l">Bearish</div><div class="hstat-v" id="hs-bear" style="color:var(--r)">—</div></div>
+    <div class="hstat"><div class="hstat-l">Avg Edge</div><div class="hstat-v" id="hs-omega" style="color:var(--p)">—</div></div>
+    <div class="hstat"><div class="hstat-l">Best EV</div><div class="hstat-v" id="hs-ev" style="color:var(--y)">—</div></div>
+    <div class="hstat"><div class="hstat-l">Top Signal</div><div class="hstat-v" id="hs-top" style="color:var(--o);font-size:11px">—</div></div>
+    <div class="hstat"><div class="hstat-l">Whales</div><div class="hstat-v" id="hs-whales" style="color:var(--o)">—</div></div>
+    <div class="hstat"><div class="hstat-l">Copy Alerts</div><div class="hstat-v" id="hs-alerts" style="color:var(--y)">0</div></div>
+  </div>
+  <div class="h-right">
+    <div class="bank-pill">
+      <label>Bankroll $</label>
+      <input class="bank-input" type="number" id="bankroll" value="30"/>
+    </div>
+    <button class="hbtn" onclick="doRefresh()">↺ Refresh</button>
+    <button class="hbtn" id="radar-btn" onclick="radarRefresh()" style="color:var(--o);border-color:rgba(255,122,48,.3)">◎ Radar</button>
+    <button class="hbtn danger" onclick="resetKey()" title="Reset API key">⚿ Key</button>
+    <span class="status-pill sp-off" id="status-chip">OFFLINE</span>
+  </div>
+</header>
+
+<!-- ── TABS ── -->
+<div class="tab-nav">
+  <button class="tab-btn active" onclick="switchTab('dashboard',this)">⬡ Dashboard</button>
+  <button class="tab-btn" onclick="switchTab('radar',this)">◎ Whale Radar</button>
+  <button class="tab-btn" onclick="switchTab('tracker',this)">◈ QC Tracker</button>
+</div>
+
+<!-- ══════ DASHBOARD ══════ -->
+<div class="tab-view active" id="view-dashboard">
+  <main>
+    <div class="left">
+      <div class="panel-hdr" style="border-right:1px solid var(--border)">
+        <span class="panel-title">Live Crypto Markets</span>
+        <span id="mkt-status" style="font-size:9px;color:var(--muted);font-family:var(--mono)">loading...</span>
+      </div>
+      <div id="mkt-list">
+        <div class="empty"><span class="spinner"></span><br><br>Fetching markets + price data...</div>
+      </div>
+    </div>
+    <div class="mid">
+      <div class="panel-hdr">
+        <span class="panel-title">Ω Engine</span>
+        <span id="mid-asset" style="font-size:9px;color:var(--muted);font-family:var(--mono)">click a row</span>
+      </div>
+      <div class="price-ticker">
+        <div class="pt-left">
+          <div class="pt-asset" id="pt-asset" style="color:var(--muted)">—</div>
+          <div class="pt-feed">Binance live · 8s</div>
+        </div>
+        <div class="pt-right">
+          <div class="pt-price" id="pt-price">—</div>
+          <div class="pt-delta" id="pt-delta">—</div>
+        </div>
+      </div>
+      <div class="mid-body" id="mid-body">
+        <div class="empty">Select a market row<br>to activate the engine</div>
+      </div>
+    </div>
+    <div class="right">
+      <div class="rp-sec" style="height:50%">
+        <div class="panel-hdr"><span class="panel-title">Whale Trades</span><span id="tc" style="font-size:9px;color:var(--muted);font-family:var(--mono)">0</span></div>
+        <div class="rp-body" id="trades"><div class="empty">—</div></div>
+      </div>
+      <div class="rp-sec">
+        <div class="panel-hdr"><span class="panel-title">Leaderboard</span>
+          <select id="lbp" onchange="loadLB()"><option value="weekly">Weekly</option><option value="monthly">Monthly</option><option value="all_time">All time</option></select>
+        </div>
+        <div class="rp-body" id="lb"><div class="empty">—</div></div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<!-- ══════ WHALE RADAR ══════ -->
+<div class="tab-view" id="view-radar">
+  <div class="radar-wrap" id="radar-wrap">
+
+    <div class="radar-topbar">
+      <div class="radar-stat"><div class="radar-stat-l">Observed wallets</div><div class="radar-stat-v" id="wr-total" style="color:var(--o)">—</div><div class="radar-stat-sub">5m crypto only</div></div>
+      <div class="radar-stat"><div class="radar-stat-l">★★★ Elite</div><div class="radar-stat-v" id="wr-elite" style="color:var(--y)">—</div><div class="radar-stat-sub">65%+ WR ≥5 obs</div></div>
+      <div class="radar-stat"><div class="radar-stat-l">Alerts fired</div><div class="radar-stat-v" id="wr-alerts-count" style="color:var(--g)">0</div><div class="radar-stat-sub">this session</div></div>
+      <div class="radar-stat"><div class="radar-stat-l">Omega agrees</div><div class="radar-stat-v" id="wr-agree" style="color:var(--p)">—</div><div class="radar-stat-sub">whale + engine</div></div>
+      <div class="radar-stat"><div class="radar-stat-l">Watching</div><div class="radar-stat-v" id="wr-watching" style="color:var(--c)">0</div><div class="radar-stat-sub">pinned wallets</div></div>
+      <div class="radar-stat"><div class="radar-stat-l">Open bets</div><div class="radar-stat-v" id="wr-open-bets" style="color:var(--y)">0</div><div class="radar-stat-sub">awaiting outcome</div></div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <button class="hbtn" onclick="radarRefresh()" style="justify-content:center;padding:8px 16px;color:var(--o);border-color:rgba(255,122,48,.3)">↺ Scan Trades</button>
+        <button class="hbtn" onclick="radarClearAlerts()" style="justify-content:center;padding:8px 16px">✕ Clear Alerts</button>
+        <button class="hbtn danger" onclick="radarResetData()" style="justify-content:center;padding:6px 16px;font-size:9px">⊗ Reset Data</button>
+      </div>
+    </div>
+
+    <div class="radar-alert-bar">
+      <div class="alert-icon"></div>
+      <div class="alert-text" id="alert-ticker-text">Radar initializing — fetching leaderboard data across all periods...</div>
+      <div class="alert-time" id="alert-ticker-time">—</div>
+    </div>
+
+    <div class="radar-grid">
+      <div class="wallet-board">
+        <div class="wallet-board-hdr">
+          <div class="wallet-board-title">Wallet Scoreboard</div>
+          <div class="wb-controls">
+            <span style="font-size:9px;color:var(--muted);font-family:var(--mono)">Filter:</span>
+            <button class="wb-filter active" onclick="radarFilter('all',this)">ALL</button>
+            <button class="wb-filter" onclick="radarFilter('elite',this)">★★★ ELITE</button>
+            <button class="wb-filter" onclick="radarFilter('watching',this)">WATCHING</button>
+            <button class="hbtn" onclick="radarRefresh()" style="padding:3px 10px;font-size:9px">↺</button>
+          </div>
+        </div>
+        <div class="wallet-col-hdr">
+          <span>#</span><span style="text-align:left">Wallet</span><span>Score</span>
+          <span>Win%</span><span>P&L</span><span>Trades</span><span style="text-align:right">Periods</span>
+        </div>
+        <div class="wallet-table-wrap" id="wallet-table">
+          <div class="empty"><span class="spinner"></span><br><br>Loading leaderboard data...</div>
+        </div>
+      </div>
+
+      <div class="signal-feed">
+        <div class="sf-hdr">
+          <div class="sf-title">Live Copy Signals</div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <select id="sf-filter" onchange="renderSignalFeed()" style="font-size:9px;padding:2px 6px">
+              <option value="all">All signals</option>
+              <option value="agree">Omega agrees</option>
+              <option value="elite">Elite only</option>
+            </select>
+            <div class="sf-live"><div class="sf-live-dot"></div>LIVE</div>
+          </div>
+        </div>
+        <div class="sf-body" id="signal-feed-body">
+          <div class="empty">Radar will surface copy signals here<br>when watched wallets place new bets</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="wallet-detail" id="wallet-detail" style="display:none">
+      <div class="wd-top">
+        <div>
+          <div style="font-size:9px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.1em;margin-bottom:3px">Wallet Detail</div>
+          <div class="wd-addr" id="wd-addr">—</div>
+        </div>
+        <button class="wd-close" onclick="closeWalletDetail()">✕ Close</button>
+      </div>
+      <div class="wd-stats" id="wd-stats"></div>
+      <div class="wd-hist-title">Recent Activity (from trade feed)</div>
+      <div id="wd-hist"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ══════ TRACKER ══════ -->
+<div class="tab-view" id="view-tracker">
+  <div class="tracker-wrap">
+    <div>
+      <div class="t-section-title">Performance overview</div>
+      <div class="t-stat-grid">
+        <div class="t-stat"><div class="t-stat-l">Total bets</div><div class="t-stat-v" id="tr-total">0</div><div class="t-stat-sub">logged</div></div>
+        <div class="t-stat"><div class="t-stat-l">Win rate</div><div class="t-stat-v" id="tr-wr" style="color:var(--g)">—</div><div class="t-stat-sub" id="tr-wl">0W / 0L</div></div>
+        <div class="t-stat"><div class="t-stat-l">Actual ROI</div><div class="t-stat-v" id="tr-roi" style="color:var(--g)">—</div><div class="t-stat-sub">vs bankroll</div></div>
+        <div class="t-stat"><div class="t-stat-l">Avg EV called</div><div class="t-stat-v" id="tr-avgev" style="color:var(--y)">—</div><div class="t-stat-sub">model estimate</div></div>
+        <div class="t-stat"><div class="t-stat-l">Net P&amp;L</div><div class="t-stat-v" id="tr-pnl">—</div><div class="t-stat-sub">USDC</div></div>
+        <div class="t-stat"><div class="t-stat-l">Edge decay</div><div class="t-stat-v" id="tr-decay" style="color:var(--c)">—</div><div class="t-stat-sub">last 10 vs first 10</div></div>
+      </div>
+    </div>
+    <div class="chart-grid">
+      <div class="chart-card"><div class="t-section-title">Cumulative P&L</div><div style="position:relative;height:160px"><canvas id="chart-pnl"></canvas></div></div>
+      <div class="chart-card"><div class="t-section-title">Win rate by asset</div><div style="position:relative;height:160px"><canvas id="chart-asset"></canvas></div></div>
+    </div>
+    <div>
+      <div class="t-section-title">Signal attribution — win rate when signal was active (min 5 samples)</div>
+      <div class="sig-breakdown" id="sig-breakdown"><div class="empty" style="padding:16px">Log at least 10 bets to see signal attribution</div></div>
+    </div>
+    <div>
+      <div class="t-section-title">Log a bet</div>
+      <div class="add-bet-form">
+        <div class="form-field"><label>Asset</label>
+          <select class="form-input" id="f-asset" style="width:80px"><option>SOL</option><option>BTC</option><option>ETH</option><option>BNB</option><option>HYP</option></select></div>
+        <div class="form-field"><label>Direction</label>
+          <select class="form-input" id="f-side" style="width:80px"><option value="yes">YES / UP</option><option value="no">NO / DOWN</option></select></div>
+        <div class="form-field"><label>Tier</label>
+          <select class="form-input" id="f-tier" style="width:100px"><option value="ALPHA">ALPHA</option><option value="BUY">BUY</option><option value="WATCH">WATCH</option></select></div>
+        <div class="form-field"><label>P_edge %</label><input class="form-input" id="f-pedge" type="number" step="0.1" min="50" max="99" value="62" style="width:80px"/></div>
+        <div class="form-field"><label>EV (¢)</label><input class="form-input" id="f-ev" type="number" step="0.1" value="45" style="width:70px"/></div>
+        <div class="form-field"><label>Bet ($)</label><input class="form-input" id="f-amt" type="number" step="0.5" min="0.5" value="3" style="width:70px"/></div>
+        <div class="form-field"><label>Market price</label><input class="form-input" id="f-price" type="number" step="0.01" min="0.01" max="0.99" value="0.50" style="width:80px"/></div>
+        <div class="form-field"><label>Active signals</label><input class="form-input" id="f-signals" type="text" placeholder="OBI,CVD,RSI" style="width:140px"/></div>
+        <div class="form-field"><label>&nbsp;</label>
+          <button class="hbtn" style="background:var(--g);color:#000;border:none;font-weight:800;padding:8px 16px" onclick="logBet()">+ Log Bet</button></div>
+      </div>
+    </div>
+    <div>
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <div class="t-section-title" style="margin-bottom:0">Bet log</div>
+        <div style="display:flex;gap:8px">
+          <button class="hbtn" onclick="exportCSV()" style="font-size:10px;padding:5px 12px">↓ Export CSV</button>
+          <button class="hbtn danger" onclick="clearAll()" style="font-size:10px;padding:5px 12px">✕ Clear all</button>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="bet-table">
+          <thead><tr><th>#</th><th>Time</th><th>Asset</th><th>Side</th><th>Tier</th><th>P_edge</th><th>EV</th><th>Bet</th><th>Price</th><th>Signals</th><th>Outcome</th><th>P&L</th><th></th></tr></thead>
+          <tbody id="bet-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════ BET MODAL ══════ -->
+<div class="overlay" id="overlay" onclick="closeModal(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-title" id="mod-title">Place Bet</div>
+    <div class="modal-sub" id="mod-sub">—</div>
+    <div class="mrow2"><label>Direction</label><span class="mval" id="mod-dir">—</span></div>
+    <div class="mrow2"><label>Market price</label><span class="mval" id="mod-price">—</span></div>
+    <div class="mrow2"><label>Time remaining</label><span class="mval" id="mod-time" style="color:var(--y)">—</span></div>
+    <div class="mrow2"><label>Live Binance price</label><span class="mval" id="mod-live">—</span></div>
+    <div class="mrow2"><label>Window delta</label><span class="mval" id="mod-delta">—</span></div>
+    <div class="mrow2" id="mod-whale-row" style="display:none"><label>Whale signal</label><span class="mval" id="mod-whale-signal" style="color:var(--o)">—</span></div>
+    <div class="math-bd">
+      <div class="mb-hdr">13-Signal Omega Breakdown</div>
+      <div class="mb-eq"><span class="mb-f">① RSI-14</span><span class="mb-v" id="mb-rsi">—</span></div>
+      <div class="mb-eq"><span class="mb-f">② Stoch-RSI %K/%D</span><span class="mb-v" id="mb-srsi">—</span></div>
+      <div class="mb-eq"><span class="mb-f">③ VWAP deviation σ</span><span class="mb-v" id="mb-vwap">—</span></div>
+      <div class="mb-eq"><span class="mb-f">④ Bollinger %B</span><span class="mb-v" id="mb-bb">—</span></div>
+      <div class="mb-eq"><span class="mb-f">⑤ EMA ribbon</span><span class="mb-v" id="mb-ema">—</span></div>
+      <div class="mb-eq"><span class="mb-f">⑥ Volume spike</span><span class="mb-v" id="mb-vol">—</span></div>
+      <div class="mb-eq"><span class="mb-f">⑦ Hurst exponent H</span><span class="mb-v" id="mb-hurst">—</span></div>
+      <div class="mb-eq"><span class="mb-f">⑧ Markov chain</span><span class="mb-v" id="mb-markov">—</span></div>
+      <div class="mb-eq"><span class="mb-f mb-new">⑨ Order Book Imbalance</span><span class="mb-v" id="mb-obi">—</span></div>
+      <div class="mb-eq"><span class="mb-f mb-new">⑩ CVD</span><span class="mb-v" id="mb-cvd">—</span></div>
+      <div class="mb-eq"><span class="mb-f mb-new">⑪ Funding Rate</span><span class="mb-v" id="mb-fr">—</span></div>
+      <div class="mb-eq"><span class="mb-f mb-new">⑫ Open Interest Δ</span><span class="mb-v" id="mb-oi">—</span></div>
+      <div class="mb-eq"><span class="mb-f mb-new">⑬ MTF RSI</span><span class="mb-v" id="mb-mtf">—</span></div>
+      <hr class="div">
+      <div class="mb-eq"><span class="mb-f">Bayesian P_edge</span><span class="mb-v" id="mb-pedge" style="color:var(--p)">—</span></div>
+      <div class="mb-eq"><span class="mb-f">EV after vig (4%)</span><span class="mb-v" id="mb-ev">—</span></div>
+      <div class="mb-eq"><span class="mb-f">Signal entropy</span><span class="mb-v" id="mb-ent">—</span></div>
+      <hr class="div">
+      <div class="mb-eq"><span class="mb-f" style="color:var(--text)">Entropy Kelly bet</span><span class="mb-v" id="mb-kelly" style="color:var(--g);font-size:14px">—</span></div>
+      <div class="kelly-track" style="margin-top:8px"><div class="kelly-fill" id="mod-kfill" style="width:0%"></div></div>
+    </div>
+    <div class="amt-wrap"><label>Bet USDC</label><input type="number" class="amt-input" id="mod-amt" value="3" min="1" oninput="updatePayout()"/></div>
+    <div class="mrow2"><label>Payout if correct</label><span class="mval" id="mod-payout" style="color:var(--g)">—</span></div>
+    <div class="mrow2"><label>Net profit</label><span class="mval" id="mod-profit" style="color:var(--g)">—</span></div>
+    <div class="modal-btns">
+      <button class="mx" onclick="closeModal()">CANCEL</button>
+      <button class="mc" onclick="confirmBet()">OPEN JUPITER ↗</button>
+    </div>
+    <div class="warn">⚠ Opens jup.ag — sign with Phantom wallet. Never risk more than you can afford to lose.</div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Scripts — order matters -->
+<script src="js/config.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/binance.js"></script>
+<script src="js/math.js"></script>
+<script src="js/omega.js"></script>
+<script src="js/dashboard.js"></script>
+<script src="js/modal.js"></script>
+<script src="js/radar.js"></script>
+<script src="js/tracker.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
